@@ -1,2 +1,75 @@
-# citations-google-workspace-add-on
-Citations add-on for Google Workspace.
+# Google Slides Citations Add-on
+
+This is a small Google Slides Apps Script add-on for managing citations inside a single presentation.
+
+It adds a `Citations` menu to Google Slides. From there you can open a sidebar, save citation metadata, insert citation markers on the current slide, and generate a bibliography slide.
+
+## What it does
+
+- Stores citations in the current presentation.
+- Inserts IEEE markers like `[1]`.
+- Inserts APA markers like `(Author, Year)`.
+- Avoids duplicate saved citation entries when the metadata is identical.
+- Generates a `References` slide at the end of the deck.
+
+## Files
+
+- `appsscript.json`: Apps Script manifest and permissions.
+- `BibTeX.gs`: Small BibTeX parser for pasted entries.
+- `Code.gs`: Slides menu, sidebar, marker insertion, and bibliography slide generation.
+- `CitationStore.gs`: Per-presentation citation storage and duplicate detection.
+- `Formatter.gs`: IEEE and APA citation formatting.
+- `Sidebar.html`: The citation entry UI.
+
+## Install Into A Google Slides Deck
+
+1. Open the Google Slides presentation where you want citations.
+2. Go to `Extensions > Apps Script`.
+3. In Apps Script, click `Project Settings`.
+4. Enable `Show "appsscript.json" manifest file in editor`.
+5. Replace the default `Code.gs` contents with the contents of this project's `Code.gs`.
+6. Add three new script files named `BibTeX.gs`, `CitationStore.gs`, and `Formatter.gs`, then paste in their matching contents.
+7. Add a new HTML file named `Sidebar`, then paste in `Sidebar.html`.
+8. Open `appsscript.json` in Apps Script and replace it with this project's `appsscript.json`.
+9. Click `Save`.
+10. Reload the Google Slides browser tab.
+
+After reload, a `Citations` menu appears in Slides.
+
+## Use It
+
+1. Click `Citations > Open citation sidebar`.
+2. Choose `IEEE numbered` or `APA author-year`.
+3. Paste a BibTeX entry, or fill in author, year, title, venue, DOI, or URL manually.
+4. Click `Insert citation marker`.
+5. A marker appears on the current slide.
+6. Click `Add/update bibliography slide` when you want the references slide.
+
+For IEEE, slide markers look like:
+
+```text
+[1]
+```
+
+For APA, slide markers look like:
+
+```text
+(Author, Year)
+```
+
+## Notes
+
+- This is a personal/bound Apps Script add-on, not a published Google Workspace Marketplace add-on.
+- Existing inserted markers are normal text boxes. If you delete or move them, the saved citation database remains unchanged.
+- The bibliography slide is regenerated from the saved citation database.
+- Google Slides does not have a native citation object model, so citations are stored as document properties and rendered as regular slide text.
+
+## Reset
+
+In Google Slides, click:
+
+```text
+Citations > Clear saved citations
+```
+
+This clears the saved citation database for the presentation. It does not remove text boxes already inserted on slides.

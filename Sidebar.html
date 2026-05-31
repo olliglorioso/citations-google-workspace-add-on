@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body {
+        color: #202124;
+        font: 13px Arial, sans-serif;
+        margin: 0;
+        padding: 14px;
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        margin: 12px 0 4px;
+      }
+
+      input,
+      textarea,
+      select {
+        border: 1px solid #dadce0;
+        border-radius: 4px;
+        box-sizing: border-box;
+        font: inherit;
+        padding: 7px 8px;
+        width: 100%;
+      }
+
+      textarea {
+        min-height: 132px;
+        resize: vertical;
+      }
+
+      button {
+        background: #1a73e8;
+        border: 0;
+        border-radius: 4px;
+        color: white;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 600;
+        margin-top: 12px;
+        padding: 8px 10px;
+        width: 100%;
+      }
+
+      button.secondary {
+        background: #f1f3f4;
+        color: #202124;
+      }
+
+      .status {
+        color: #188038;
+        margin-top: 10px;
+        min-height: 18px;
+      }
+
+      .error {
+        color: #d93025;
+      }
+
+      .list {
+        border-top: 1px solid #e0e0e0;
+        margin-top: 16px;
+        padding-top: 10px;
+      }
+
+      .citation {
+        border-bottom: 1px solid #f1f3f4;
+        display: flex;
+        gap: 8px;
+        justify-content: space-between;
+        line-height: 1.35;
+        padding: 7px 0;
+      }
+
+      .citation-label {
+        flex: 1;
+      }
+
+      button.delete {
+        background: transparent;
+        border: 1px solid #dadce0;
+        color: #d93025;
+        flex: 0 0 auto;
+        margin: 0;
+        padding: 3px 7px;
+        width: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <label for="style">Style</label>
+    <select id="style">
+      <option value="IEEE">IEEE numbered</option>
+      <option value="APA">APA author-year</option>
+    </select>
+
+    <label for="bibtex">BibTeX entry</label>
+    <textarea id="bibtex" placeholder="@article{key,\n  author = {Smith, Jane},\n  title = {Example paper},\n  journal = {Example Journal},\n  year = {2026},\n  doi = {10.xxxx/example}\n}"></textarea>
+
+    <button onclick="insertCitation()">Insert BibTeX citation marker</button>
+    <button class="secondary" onclick="clearBibTeX()">Clear BibTeX box</button>
+
+    <label for="author">Author</label>
+    <input id="author" placeholder="NVIDIA or Smith et al.">
+
+    <label for="year">Year</label>
+    <input id="year" placeholder="2026">
+
+    <label for="title">Title</label>
+    <input id="title" placeholder="Paper, manual, web page, or dataset title">
+
+    <label for="venue">Venue / publisher</label>
+    <input id="venue" placeholder="Conference, journal, website, or organization">
+
+    <label for="doi">DOI</label>
+    <input id="doi" placeholder="10.xxxx/xxxxx">
+
+    <label for="url">URL</label>
+    <input id="url" placeholder="https://...">
+
+    <button class="secondary" onclick="insertCitation()">Insert manual citation marker</button>
+    <button class="secondary" onclick="buildBibliography()">Add/update bibliography slide</button>
+
+    <div id="status" class="status"></div>
+
+    <div class="list">
+      <strong>Saved citations</strong>
+      <div id="citations"></div>
+    </div>
+
+    <script>
+      function citationForm() {
+        return {
+          style: document.getElementById('style').value,
+          bibtex: document.getElementById('bibtex').value.trim(),
+          author: document.getElementById('author').value,
+          year: document.getElementById('year').value,
+          title: document.getElementById('title').value,
+          venue: document.getElementById('venue').value,
+          doi: document.getElementById('doi').value,
+          url: document.getElementById('url').value
+        };
+      }
+
+      function insertCitation() {
+        setStatus('Inserting...');
+        google.script.run
+          .withSuccessHandler(function(result) {
+            renderCitations(result.citations);
+            setStatus('Inserted ' + result.marker);
+          })
+          .withFailureHandler(showError)
+          .insertCitationFromSidebar(citationForm());
+      }
+
+      function clearBibTeX() {
+        document.getElementById('bibtex').value = '';
+        setStatus('BibTeX box cleared.');
+      }
+
+      function buildBibliography() {
+        setStatus('Building bibliography...');
+        google.script.run
+          .withSuccessHandler(function(result) {
+            setStatus('Bibliography updated with ' + result.count + ' citation(s).');
+          })
+          .withFailureHandler(showError)
+          .rebuildBibliographySlide(document.getElementById('style').value);
+      }
+
+      function loadCitations() {
+        google.script.run
+          .withSuccessHandler(function(result) {
+            renderCitations(result.citations);
+          })
+          .withFailureHandler(showError)
+          .getSavedCitationsForSidebar();
+      }
+
+      function deleteCitation(number) {
+        setStatus('Deleting citation [' + number + ']...');
+        google.script.run
+          .withSuccessHandler(function(result) {
+            renderCitations(result.citations);
+            setStatus('Deleted citation. Rebuild the bibliography slide to refresh numbering.');
+          })
+          .withFailureHandler(showError)
+          .deleteCitationFromSidebar(number);
+      }
+
+      function renderCitations(citations) {
+        var container = document.getElementById('citations');
+        container.innerHTML = '';
+
+        if (!citations || citations.length === 0) {
+          container.textContent = 'No citations saved yet.';
+          return;
+        }
+
+        citations.forEach(function(citation) {
+          var row = document.createElement('div');
+          row.className = 'citation';
+
+          var label = document.createElement('div');
+          label.className = 'citation-label';
+          label.textContent = citation.label;
+
+          var deleteButton = document.createElement('button');
+          deleteButton.className = 'delete';
+          deleteButton.type = 'button';
+          deleteButton.textContent = 'Delete';
+          deleteButton.onclick = function() {
+            deleteCitation(citation.number);
+          };
+
+          row.appendChild(label);
+          row.appendChild(deleteButton);
+          container.appendChild(row);
+        });
+      }
+
+      function setStatus(message) {
+        var status = document.getElementById('status');
+        status.className = 'status';
+        status.textContent = message;
+      }
+
+      function showError(error) {
+        var status = document.getElementById('status');
+        status.className = 'status error';
+        status.textContent = error && error.message ? error.message : String(error);
+      }
+
+      loadCitations();
+    </script>
+  </body>
+</html>
